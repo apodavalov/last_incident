@@ -6,14 +6,39 @@
          Time since last incident
       </title>
       <style>
-	body {
-	    background-color: #e0e0e0;
+	.low-night {
+	    background-color: #3b1717;
+	    color: #c82e2e;
+	}
+
+	.medium-night {
+	    background-color: #3b3b17;
+	    color: #c8c82e;
+	}
+
+	.high-night {
+	    background-color: #173b17;
+	    color: #2ec82e;
+	}
+
+	.low-day {
+	    background-color: #ffe0e0;
+	    color: #cc0000;
+	}
+
+	.medium-day {
+	    background-color: #ffffe0;
+	    color: #cc9900;
+	}
+
+	.high-day {
+	    background-color: #e0ffe0;
+	    color: #336600;
 	}
 
 	.notice {
 	    text-align: center;
 	    vertical-align: middle;
-	    color: black;
 	    margin-left: auto;
 	    margin-right: auto;
 	    margin-bottom: 50px;
@@ -24,7 +49,6 @@
 	.time {
 	    text-align: center;
 	    vertical-align: middle;
-	    color: green;
 	    margin: auto;
 	    font-size: 50pt;
 	}
@@ -32,7 +56,6 @@
 	.best-notice {
 	    text-align: center;
 	    vertical-align: middle;
-	    color: black;
 	    margin-left: auto;
 	    margin-right: auto;
 	    margin-bottom: auto;
@@ -47,24 +70,12 @@
 	    font-size: 350pt;
 	    height: 500px;
 	}
-
-	.days[good="low"], .time[good="low"] {
-	    color: red;
-	}
-
-	.days[good="medium"], .time[good="medium"] {
-	    color: yellow;
-	}
-
-	.days[good="high"], .time[good="high"] {
-	    color: green;
-	}
       </style>
    </head>
-   <body>
-	<div good="low" id="days" class="days">00000</div>
+   <body class="low-day" id="body">
+	<div id="days" class="days">00000</div>
 	<div class="notice">days since last incident</div>
-	<div good="low" id="time" class="time">0.00:00:00</div>
+	<div id="time" class="time">0.00:00:00</div>
 	<div class="notice">since last incident</div>
 	<div class="best-notice">the best duration <span id="duration">&lt;none&gt;</span> achieved at <span id="achieved">&lt;never&gt;</span></div>
    </body>
@@ -158,8 +169,8 @@
 	    var best_period_begin = new Date('2018-01-14T19:33:00'); // MSK
 	    var best_period_end = new Date('2018-01-17T19:34:00'); // MSK
 
-	    var latitude = 59.9586496;
-	    var longitude = 30.4066436;
+	    var latitude = 59.9586496; // Spb latitude
+	    var longitude = 30.4066436; // Spb longitude
 
 	    var now = new Date(Date.now());
 	    var best_period_duration = getDurationSec(best_period_begin, best_period_end);
@@ -174,23 +185,22 @@
 	    var durationElement = document.getElementById("duration");
 	    bestElement.innerText = total < best_period_duration ? best_period_end : now;
 	    durationElement.innerText = total < best_period_duration ? formatPeriod(getPeriod(best_period_duration)) : periodStr;
+	    var suffix = isDay(now, latitude, longitude) ? "-day" : "-night";
+	    var bodyElement = document.getElementById("body");
 
 	    if (period.days == 0) {
-		daysElement.setAttribute("good", "low");
-		timeElement.setAttribute("good", "low");
+		bodyElement.setAttribute("class", "low" + suffix);
 
 		return;
 	    }
 
 	    if (total < best_period_duration) {
-		daysElement.setAttribute("good", "medium");
-		timeElement.setAttribute("good", "medium");
+		bodyElement.setAttribute("class", "medium" + suffix);
 
 		return;
 	    }
 
-	    daysElement.setAttribute("good", "high");
-	    timeElement.setAttribute("good", "high");
+	    bodyElement.setAttribute("class", "high" + suffix);
 	}
 	update();
         setInterval(update, 100);
