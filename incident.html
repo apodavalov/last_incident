@@ -69,6 +69,60 @@
 	<div class="best-notice">the best duration <span id="duration">&lt;none&gt;</span> achieved at <span id="achieved">&lt;never&gt;</span></div>
    </body>
    <script>
+	function isLeapYear(year) {
+	    return (year % 4 == 0) && (year % 100 != 0) || (year % 400 == 0);
+	}
+
+	function toRadians(degrees) {
+	    return degrees * Math.PI / 180.0;
+	}
+
+	function toSectorDegree(part) {
+	    return 360.0 * part;
+	}
+
+	function toMillis(days) {
+	    return days * 24.0 * 60.0 * 60.0 * 1000.0;
+	}
+
+	function isDay(date, latitude, longitude) {
+	    var currentYear = date.getUTCFullYear();
+	    var currentYearSpringEquinox = new Date(Date.UTC(currentYear, 2, 20, 12, 0, 0, 0));
+	    var yearDurationMillis = toMillis(isLeapYear(currentYear) ? 366 : 365);
+	    var sinAngle = Math.sin(toRadians(toSectorDegree((date - currentYearSpringEquinox) / yearDurationMillis)));
+	    var sinEclipticAngle = Math.sin(toRadians(23.4391));
+	    var tanCurrentEclipticAngle = Math.tan(Math.asin(sinAngle * sinEclipticAngle));
+	    var cos = Math.tan(toRadians(latitude)) * tanCurrentEclipticAngle;
+
+	    if (cos >= 1) {
+		return true;
+	    }
+
+	    if (cos <= -1) {
+		return false;
+	    }
+
+	    var halfDayPartMillisValue = toMillis((1.0 - (Math.acos(cos) / Math.PI)) / 2.0);
+
+	    var noonUTCMillis = new Date(Date.UTC(currentYear, date.getUTCMonth(), date.getUTCDate(), 12, 0, 0, 0)).getTime();
+	    var noonLocalMillis = noonUTCMillis - toMillis(toRadians(longitude) / Math.PI / 2.0);
+
+	    var sunriseLocalMillis = noonLocalMillis - halfDayPartMillisValue;
+	    var sunsetLocalMillis = noonLocalMillis + halfDayPartMillisValue;
+
+	    var currentMillis = date.getTime();
+
+	    if (currentMillis < sunriseLocalMillis) {
+		return false;
+	    }
+
+	    if (currentMillis < sunsetLocalMillis) {
+		return true;
+	    }
+
+	    return false;
+	}
+
 	function pad(num, count) {
 	    var str = num.toString();
 	    
@@ -103,6 +157,9 @@
 	    var last_incident_day = new Date('2018-02-07T00:02:00'); // MSK
 	    var best_period_begin = new Date('2018-01-14T19:33:00'); // MSK
 	    var best_period_end = new Date('2018-01-17T19:34:00'); // MSK
+
+	    var latitude = 59.9586496;
+	    var longitude = 30.4066436;
 
 	    var now = new Date(Date.now());
 	    var best_period_duration = getDurationSec(best_period_begin, best_period_end);
