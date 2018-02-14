@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <meta charset="utf-8">
+      <title>
+         Time since last incident
+      </title>
+      <style>
+	body {
+	    background-color: #e0e0e0;
+	}
+
+	.notice {
+	    text-align: center;
+	    vertical-align: middle;
+	    color: black;
+	    margin-left: auto;
+	    margin-right: auto;
+	    margin-bottom: 50px;
+	    margin-top: auto;
+	    font-size: 50pt;
+	}
+
+	.time {
+	    text-align: center;
+	    vertical-align: middle;
+	    color: green;
+	    margin: auto;
+	    font-size: 50pt;
+	}
+
+	.best-notice {
+	    text-align: center;
+	    vertical-align: middle;
+	    color: black;
+	    margin-left: auto;
+	    margin-right: auto;
+	    margin-bottom: auto;
+	    margin-top: 100px;
+	    font-size: 20pt;
+	}
+
+	.days {
+	    text-align: center;
+	    vertical-align: middle;
+	    margin: auto;
+	    font-size: 350pt;
+	    height: 500px;
+	}
+
+	.days[good="low"], .time[good="low"] {
+	    color: red;
+	}
+
+	.days[good="medium"], .time[good="medium"] {
+	    color: yellow;
+	}
+
+	.days[good="high"], .time[good="high"] {
+	    color: green;
+	}
+      </style>
+   </head>
+   <body>
+	<div good="low" id="days" class="days">00000</div>
+	<div class="notice">days since last incident</div>
+	<div good="low" id="time" class="time">0.00:00:00</div>
+	<div class="notice">since last incident</div>
+	<div class="best-notice">the best duration <span id="duration">&lt;none&gt;</span> achieved at <span id="achieved">&lt;never&gt;</span></div>
+   </body>
+   <script>
+	function pad(num, count) {
+	    var str = num.toString();
+	    
+	    while (str.length < count) {
+		str = "0" + str;
+	    }
+
+	    return str;
+	}
+
+	function getDurationSec(begin, end) {
+	    return Math.floor((end - begin) / 1000);
+	}
+
+	function getPeriod(durationSec) {
+	    var sec = durationSec % 60;
+	    durationSec = Math.floor(durationSec / 60);
+	    var min = durationSec % 60;
+	    durationSec = Math.floor(durationSec / 60);
+	    var hour = durationSec % 24;
+	    durationSec = Math.floor(durationSec / 24);
+	    var days = durationSec;
+
+	    return { sec: sec, min: min, hour: hour, days: days };
+	}
+
+	function formatPeriod(period) {
+	    return period.days + "." + pad(period.hour,2) + ":" + pad(period.min,2) + ":" + pad(period.sec,2);
+	}
+
+	function update() {
+	    var last_incident_day = new Date('2018-02-07T00:02:00'); // MSK
+	    var best_period_begin = new Date('2018-01-14T19:33:00'); // MSK
+	    var best_period_end = new Date('2018-01-17T19:34:00'); // MSK
+
+	    var now = new Date(Date.now());
+	    var best_period_duration = getDurationSec(best_period_begin, best_period_end);
+	    var total = getDurationSec(last_incident_day, now);
+	    var period = getPeriod(total);
+	    var periodStr = formatPeriod(period);
+	    var timeElement = document.getElementById("time");
+	    timeElement.innerText = periodStr;
+	    var daysElement = document.getElementById("days");
+	    daysElement.innerText = pad(period.days,5);
+	    var bestElement = document.getElementById("achieved");
+	    var durationElement = document.getElementById("duration");
+	    bestElement.innerText = total < best_period_duration ? best_period_end : now;
+	    durationElement.innerText = total < best_period_duration ? formatPeriod(getPeriod(best_period_duration)) : periodStr;
+
+	    if (period.days == 0) {
+		daysElement.setAttribute("good", "low");
+		timeElement.setAttribute("good", "low");
+
+		return;
+	    }
+
+	    if (total < best_period_duration) {
+		daysElement.setAttribute("good", "medium");
+		timeElement.setAttribute("good", "medium");
+
+		return;
+	    }
+
+	    daysElement.setAttribute("good", "high");
+	    timeElement.setAttribute("good", "high");
+	}
+	update();
+        setInterval(update, 100);
+   </script>
+</html>
