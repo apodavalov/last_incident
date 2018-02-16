@@ -107,13 +107,13 @@
 	}
 
 	function isDay(date, latitude, longitude) {
-	    var currentYear = date.getUTCFullYear();
-	    var currentYearSpringEquinox = new Date(Date.UTC(currentYear, 2, 20, 12, 0, 0, 0));
-	    var yearDurationMillis = toMillis(isLeapYear(currentYear) ? 366 : 365);
-	    var sinAngle = Math.sin(toRadians(toSectorDegree((date - currentYearSpringEquinox) / yearDurationMillis)));
+	    var year = date.getUTCFullYear();
+	    var yearSpringEquinox = new Date(Date.UTC(year, 2, 20, 12, 0, 0, 0));
+	    var yearDurationMillis = toMillis(isLeapYear(year) ? 366 : 365);
+	    var sinAngle = Math.sin(toRadians(toSectorDegree((date - yearSpringEquinox) / yearDurationMillis)));
 	    var sinEclipticAngle = Math.sin(toRadians(23.4391));
-	    var tanCurrentEclipticAngle = Math.tan(Math.asin(sinAngle * sinEclipticAngle));
-	    var cos = Math.tan(toRadians(latitude)) * tanCurrentEclipticAngle;
+	    var tanEclipticAngle = Math.tan(Math.asin(sinAngle * sinEclipticAngle));
+	    var cos = Math.tan(toRadians(latitude)) * tanEclipticAngle;
 
 	    if (cos >= 1) {
 		return true;
@@ -125,19 +125,19 @@
 
 	    var halfDayPartMillisValue = toMillis((1.0 - (Math.acos(cos) / Math.PI)) / 2.0);
 
-	    var noonUTCMillis = new Date(Date.UTC(currentYear, date.getUTCMonth(), date.getUTCDate(), 12, 0, 0, 0)).getTime();
+	    var noonUTCMillis = new Date(Date.UTC(year, date.getUTCMonth(), date.getUTCDate(), 12, 0, 0, 0)).getTime();
 	    var noonLocalMillis = noonUTCMillis - toMillis(toRadians(longitude) / Math.PI / 2.0);
 
 	    var sunriseLocalMillis = noonLocalMillis - halfDayPartMillisValue;
 	    var sunsetLocalMillis = noonLocalMillis + halfDayPartMillisValue;
 
-	    var currentMillis = date.getTime();
+	    var millis = date.getTime();
 
-	    if (currentMillis < sunriseLocalMillis) {
+	    if (millis < sunriseLocalMillis) {
 		return false;
 	    }
 
-	    if (currentMillis < sunsetLocalMillis) {
+	    if (millis < sunsetLocalMillis) {
 		return true;
 	    }
 
