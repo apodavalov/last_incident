@@ -138,8 +138,11 @@
 	    var yearDurationMillis = toMillis(getYearLength(year));
 	    var sinAngle = Math.sin(toRadians(toSectorDegree((date - yearSpringEquinox) / yearDurationMillis)));
 	    var sinEclipticAngle = Math.sin(toRadians(23.4391));
-	    var tanEclipticAngle = Math.tan(Math.asin(sinAngle * sinEclipticAngle));
-	    var cos = Math.tan(toRadians(latitude)) * tanEclipticAngle;
+	    var deltaAngle = Math.asin(sinAngle * sinEclipticAngle);
+	    var cosEclipticAngle = Math.cos(deltaAngle);
+	    var sinEclipticAngle = Math.sin(deltaAngle);
+	    var latitudeRadians = toRadians(latitude);
+	    var cos = (Math.sin(latitudeRadians) * sinEclipticAngle - Math.sin(toRadians(-0.83))) / (cosEclipticAngle * Math.cos(latitudeRadians));
 
 	    if (cos >= 1) {
 		return true;
