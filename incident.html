@@ -106,10 +106,36 @@
 	    return days * 24 * 60 * 60 * 1000;
 	}
 
+	function getYearLength(year) {
+	    return isLeapYear(year) ? 366 : 365;
+	}
+
+	function getTrueNoon(localNoonUTCTimeMillis, dayOfYear, year) {
+	    var yearAngle = 2 * Math.PI * dayOfYear / getYearLength(year);
+	    var trueNoon = localNoonUTCTimeMillis + 45930 * Math.sin(yearAngle) - 592380 * Math.sin(2 * yearAngle + 3.588);
+
+	    var oneDayMillis = toMillis(1);
+
+	    if (trueNoon < 0) {
+		return trueNoon + oneDayMillis;
+	    }
+
+	    if (trueNoon > oneDayMillis) {
+		return trueNoon - oneDayMillis;
+	    }
+
+	    return trueNoon;
+	}
+
+	function getYearDay(date) {
+	    var yearBegin = Date.UTC(date.getUTCFullYear(), 0, 1, 0, 0, 0, 0);
+	    return (date - yearBegin) / toMillis(1.0);
+	}
+
 	function isDay(date, latitude, longitude) {
 	    var year = date.getUTCFullYear();
 	    var yearSpringEquinox = new Date(Date.UTC(year, 2, 20, 12, 0, 0, 0));
-	    var yearDurationMillis = toMillis(isLeapYear(year) ? 366 : 365);
+	    var yearDurationMillis = toMillis(getYearLength(year));
 	    var sinAngle = Math.sin(toRadians(toSectorDegree((date - yearSpringEquinox) / yearDurationMillis)));
 	    var sinEclipticAngle = Math.sin(toRadians(23.4391));
 	    var tanEclipticAngle = Math.tan(Math.asin(sinAngle * sinEclipticAngle));
@@ -124,7 +150,7 @@
 
 	    var halfDayPartMillisValue = toMillis((1.0 - (Math.acos(cos) / Math.PI)) / 2.0);
 
-	    var localNoonUTCTimeMillis = toMillis(0.5 - toRadians(longitude) / Math.PI / 2.0);
+	    var localNoonUTCTimeMillis = getTrueNoon(toMillis(0.5 - toRadians(longitude) / Math.PI / 2.0), getYearDay(date), year);
 
 	    var dayUTCTimeBegin = localNoonUTCTimeMillis - halfDayPartMillisValue;
 	    var dayUTCTimeEnd = localNoonUTCTimeMillis + halfDayPartMillisValue;
