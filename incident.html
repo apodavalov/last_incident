@@ -103,7 +103,7 @@
 	}
 
 	function toMillis(days) {
-	    return days * 24.0 * 60.0 * 60.0 * 1000.0;
+	    return days * 24 * 60 * 60 * 1000;
 	}
 
 	function isDay(date, latitude, longitude) {
@@ -118,26 +118,46 @@
 	    if (cos >= 1) {
 		return true;
 	    }
-
 	    if (cos <= -1) {
 		return false;
 	    }
 
 	    var halfDayPartMillisValue = toMillis((1.0 - (Math.acos(cos) / Math.PI)) / 2.0);
 
-	    var noonUTCMillis = new Date(Date.UTC(year, date.getUTCMonth(), date.getUTCDate(), 12, 0, 0, 0)).getTime();
-	    var noonLocalMillis = noonUTCMillis - toMillis(toRadians(longitude) / Math.PI / 2.0);
+	    var localNoonUTCTimeMillis = toMillis(0.5 - toRadians(longitude) / Math.PI / 2.0);
 
-	    var sunriseLocalMillis = noonLocalMillis - halfDayPartMillisValue;
-	    var sunsetLocalMillis = noonLocalMillis + halfDayPartMillisValue;
+	    var dayUTCTimeBegin = localNoonUTCTimeMillis - halfDayPartMillisValue;
+	    var dayUTCTimeEnd = localNoonUTCTimeMillis + halfDayPartMillisValue;
 
-	    var millis = date.getTime();
+	    var oneDayMillis = toMillis(1);
 
-	    if (millis < sunriseLocalMillis) {
+	    var time = date.getTime() % oneDayMillis;
+
+	    if (dayUTCTimeBegin <= 0) {
+		dayUTCTimeBegin = dayUTCTimeBegin + oneDayMillis;
+
+		if (time >= dayUTCTimeBegin) {
+		    return true;
+		}
+
+		dayUTCTimeBegin = 0;
+	    }
+
+	    if (dayUTCTimeEnd >= oneDayMillis) {
+		dayUTCTimeEnd = dayUTCTimeEnd - oneDayMillis;
+
+		if (time <= dayUTCTimeEnd) {
+		    return true;
+		}
+
+		dayUTCTimeEnd = oneDayMillis;
+	    }
+
+	    if (time < dayUTCTimeBegin) {
 		return false;
 	    }
 
-	    if (millis < sunsetLocalMillis) {
+	    if (time <= dayUTCTimeEnd) {
 		return true;
 	    }
 
@@ -146,7 +166,7 @@
 
 	function pad(num, count) {
 	    var str = num.toString();
-	    
+
 	    while (str.length < count) {
 		str = "0" + str;
 	    }
