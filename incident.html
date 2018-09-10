@@ -6,46 +6,6 @@
          Time since last incident
       </title>
       <style>
-	.low-night {
-	    background-color: #3b1717;
-	    color: #c82e2e;
-	}
-
-	.medium-night {
-	    background-color: #3b3b17;
-	    color: #c8c82e;
-	}
-
-	.high-night {
-	    background-color: #173b17;
-	    color: #2ec82e;
-	}
-
-	.unnamed-night {
-	    background-color: #17173b;
-	    color: #2e2ec8;
-	}
-
-	.low-day {
-	    background-color: #ffe0e0;
-	    color: #cc0000;
-	}
-
-	.medium-day {
-	    background-color: #efefe0;
-	    color: #cc9900;
-	}
-
-	.high-day {
-	    background-color: #e0ffe0;
-	    color: #336600;
-	}
-
-	.unnamed-day {
-	    background-color: #e0e0ff;
-	    color: #000066;
-	}
-
 	.notice {
 	    text-align: center;
 	    vertical-align: middle;
@@ -82,7 +42,7 @@
 	}
       </style>
    </head>
-   <body class="low-day" id="body">
+   <body id="body">
 	<div id="days" class="days">00000</div>
 	<div class="notice">days since last incident</div>
 	<div id="time" class="time">0.00:00:00</div>
@@ -193,14 +153,22 @@
 	    return false;
 	}
 
-	function pad(num, count) {
-	    var str = num.toString();
+	function pad_radix(num, count, radix) {
+	    var str = num.toString(radix);
 
 	    while (str.length < count) {
 		str = "0" + str;
 	    }
 
 	    return str;
+	}
+
+	function pad(num, count) {
+	    return pad_radix(num, count, 10);
+	}
+
+	function pad2(num) {
+	    return pad_radix(num, 2, 16);
 	}
 
 	function getDurationSec(begin, end) {
@@ -223,13 +191,95 @@
 	    return period.days + "." + pad(period.hour,2) + ":" + pad(period.min,2) + ":" + pad(period.sec,2);
 	}
 
+	function RGB(red, green, blue) {
+	    this.red = red;
+	    this.green = green;
+	    this.blue = blue;
+	}
+
+	function ColorTuple(bg_color, color) {
+	    this.bg_color = bg_color;
+	    this.color = color;
+	}
+
+	function ColorTupleSet(low, medium, high, unnamed) {
+	    this.low = low;
+	    this.medium = medium;
+	    this.high = high;
+	    this.unnamed = unnamed;
+	}
+
+	function ColorTuplePair(left, right) {
+	    this.left = left;
+	    this.right = right;
+	}
+
+	function colorToStyle(color) {
+	    return '#' + pad2(color.red) + pad2(color.green) + pad2(color.blue);
+	}
+
+	function colorTupleToStyle(color_tuple) {
+	    return 'background-color: ' + colorToStyle(color_tuple.bg_color) + '; ' + 'color: ' + colorToStyle(color_tuple.color) + ';';
+	}
+
+	function getPart(a, b, part) {
+	    return Math.round(a + (b-a)*part);
+	}
+
+	function getColorPart(a_color, b_color, part) {
+	    return new RGB(
+		getPart(a_color.red, b_color.red, part),
+		getPart(a_color.green, b_color.green, part),
+		getPart(a_color.blue, b_color.blue, part),
+	    );
+	}
+
+	function getColorTuplePart(a_color_tuple, b_color_tuple, part) {
+	    return new ColorTuple(
+		getColorPart(a_color_tuple.bg_color, b_color_tuple.bg_color, part),
+		getColorPart(a_color_tuple.color, b_color_tuple.color, part),
+	    );
+	}
+
+	function getColorTuple(color_tuple_set, total, best_total) {
+	    if (total <= 0) {
+		return color_tuple_set.low;
+	    }
+
+	    if (total >= best_total) {
+		return color_tuple_set.high;
+	    }
+
+	    var half_best_total = best_total / 2;
+
+	    var pair = total < half_best_total ? new ColorTuplePair(color_tuple_set.low, color_tuple_set.medium) : new ColorTuplePair(color_tuple_set.medium, color_tuple_set.high);
+
+	    var new_total = total < half_best_total ? total : total - half_best_total;
+
+	    return getColorTuplePart(pair.left, pair.right, new_total / half_best_total);
+	}
+
 	function update() {
 	    var last_incident_day = new Date('2018-06-28T00:02:00'); // MSK
 	    var best_period_begin = new Date('2018-01-14T19:33:00'); // MSK
-	    var best_period_end = new Date('2018-01-18T19:34:00'); // MSK
+	    var best_period_end = new Date('2018-01-14T19:34:00'); // MSK
 
 	    var latitude = 59.9586496; // Spb latitude
 	    var longitude = 30.4066436; // Spb longitude
+
+	    var night = new ColorTupleSet(
+		new ColorTuple(new RGB(0x3b, 0x17, 0x17), new RGB(0xc8, 0x2e, 0x2e)),
+		new ColorTuple(new RGB(0x3b, 0x3b, 0x17), new RGB(0xc8, 0xc8, 0x2e)),
+		new ColorTuple(new RGB(0x17, 0x3b, 0x17), new RGB(0x2e, 0xc8, 0x2e)),
+		new ColorTuple(new RGB(0x17, 0x17, 0x3b), new RGB(0x2e, 0x2e, 0xc8))
+	    );
+
+	    var day = new ColorTupleSet(
+		new ColorTuple(new RGB(0xff, 0xe0, 0xe0), new RGB(0xcc, 0x00, 0x00)),
+		new ColorTuple(new RGB(0xef, 0xef, 0xe0), new RGB(0xcc, 0x99, 0x00)),
+		new ColorTuple(new RGB(0xe0, 0xff, 0xe0), new RGB(0x33, 0x66, 0x00)),
+		new ColorTuple(new RGB(0xe0, 0xe0, 0xff), new RGB(0x00, 0x00, 0x66))
+	    );
 
 	    var now = new Date(Date.now());
 	    var foolDay = now.getDate() == 1 && now.getMonth() == 3;
@@ -246,24 +296,12 @@
 	    var durationElement = document.getElementById("duration");
 	    bestElement.innerText = total < best_period_duration ? best_period_end : now;
 	    durationElement.innerText = total < best_period_duration ? formatPeriod(getPeriod(best_period_duration)) : periodStr;
-	    var suffix = isDay(now, latitude, longitude) ^ foolDay ? "-day" : "-night";
+	    var colorTupleSet = isDay(now, latitude, longitude) ^ foolDay ? day : night;
 	    var bodyElement = document.getElementById("body");
-
-	    if (total < best_period_duration / 2) {
-		bodyElement.setAttribute("class", "low" + suffix);
-
-		return;
-	    }
-
-	    if (total < best_period_duration) {
-		bodyElement.setAttribute("class", "medium" + suffix);
-
-		return;
-	    }
-
-	    bodyElement.setAttribute("class", "high" + suffix);
+	    var colorTuple = getColorTuple(colorTupleSet, total, best_period_duration);
+	    bodyElement.setAttribute("style", colorTupleToStyle(colorTuple));
 	}
 	update();
-        setInterval(update, 100);
+	setInterval(update, 100);
    </script>
 </html>
