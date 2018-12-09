@@ -44,9 +44,9 @@
    </head>
    <body id="body">
 	<div id="days" class="days">00000</div>
-	<div class="notice">days since last incident</div>
+	<div class="notice" id="days-notice">days since last incident</div>
 	<div id="time" class="time">0.00:00:00</div>
-	<div class="notice">since last incident</div>
+	<div class="notice" id="time-notice">since last incident</div>
 	<div class="best-notice">the best duration <span id="duration">&lt;none&gt;</span> achieved at <span id="achieved">&lt;never&gt;</span></div>
    </body>
    <script>
@@ -283,8 +283,14 @@
 
 	    var now = new Date(Date.now());
 	    var foolDay = now.getDate() == 1 && now.getMonth() == 3;
+	    var newYearIsComing = now.getDate() > 15 && now.getMonth() == 11;
+	    if (newYearIsComing) {
+		last_incident_day = now;
+		best_period_begin = new Date('0004-01-01T00:00:00')
+		best_period_end = new Date('0005-01-01T00:00:00');
+	    }
 	    var best_period_duration = getDurationSec(best_period_begin, best_period_end);
-	    var totalDurationSec = getDurationSec(last_incident_day, now);
+	    var totalDurationSec = newYearIsComing ? getDurationSec(now, new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0, 0)) : getDurationSec(last_incident_day, now);
 	    var total = foolDay ? 100000 * 24 * 60 * 60 - totalDurationSec : totalDurationSec;
 	    var period = getPeriod(total);
 	    var periodStr = formatPeriod(period);
@@ -298,8 +304,19 @@
 	    durationElement.innerText = total < best_period_duration ? formatPeriod(getPeriod(best_period_duration)) : periodStr;
 	    var colorTupleSet = isDay(now, latitude, longitude) ^ foolDay ? day : night;
 	    var bodyElement = document.getElementById("body");
-	    var colorTuple = getColorTuple(colorTupleSet, total, best_period_duration);
+	    var colorTuple;
+	    if (newYearIsComing) {
+		var seconds = now.getSeconds() % 10;
+		var pseudo_total = seconds < 5 ? seconds * 1000 + now.getMilliseconds() : 5000 - (seconds - 5) * 1000 - now.getMilliseconds();
+		colorTuple = getColorTuple(colorTupleSet, pseudo_total, 5000);
+	    } else {
+		colorTuple = getColorTuple(colorTupleSet, total, best_period_duration);
+	    }
 	    bodyElement.setAttribute("style", colorTupleToStyle(colorTuple));
+	    var daysNotice = document.getElementById("days-notice");
+	    daysNotice.innerText = newYearIsComing ? "days till the next year" : "days since last incident";
+	    var timeNotice = document.getElementById("time-notice");
+	    timeNotice.innerText = newYearIsComing ? "till the next year" : "since last incident";
 	}
 	update();
 	setInterval(update, 100);
