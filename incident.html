@@ -50,107 +50,73 @@
 	<div class="best-notice">the best duration <span id="duration">&lt;none&gt;</span> achieved at <span id="achieved">&lt;never&gt;</span></div>
    </body>
    <script>
-	function isLeapYear(year) {
-	    return (year % 4 == 0) && (year % 100 != 0) || (year % 400 == 0);
-	}
+	// Zenith day threshold values:
+	// * Include day time only: 90 + 50.0 / 60.0
+	// * Include civil twilight: 96
+	// * Include nautical twilight: 102
+	// * Include astronomical twilight: 108
+	const zenithDayThresholdDegrees = 90 + 50.0 / 60.0;
+
+	const axialTilt = 23.4392811;
+	const tropicalYearMillis = 31556925190;
+	const dayMillis = 86400000;
+	const millisInMinute = 60000;
 
 	function toRadians(degrees) {
 	    return degrees * Math.PI / 180.0;
+	}
+
+	function toDegrees(radians) {
+	    return radians * 180.0 / Math.PI;
 	}
 
 	function toSectorDegree(part) {
 	    return 360.0 * part;
 	}
 
-	function toMillis(days) {
-	    return days * 24 * 60 * 60 * 1000;
-	}
-
-	function getYearLength(year) {
-	    return isLeapYear(year) ? 366 : 365;
-	}
-
-	function getTrueNoon(localNoonUTCTimeMillis, dayOfYear, year) {
-	    var yearAngle = 2 * Math.PI * dayOfYear / getYearLength(year);
-	    var trueNoon = localNoonUTCTimeMillis + 45930 * Math.sin(yearAngle) - 592380 * Math.sin(2 * yearAngle + 3.588);
-
-	    var oneDayMillis = toMillis(1);
-
-	    if (trueNoon < 0) {
-		return trueNoon + oneDayMillis;
-	    }
-
-	    if (trueNoon > oneDayMillis) {
-		return trueNoon - oneDayMillis;
-	    }
-
-	    return trueNoon;
-	}
-
-	function getYearDay(date) {
-	    var yearBegin = Date.UTC(date.getUTCFullYear(), 0, 1, 0, 0, 0, 0);
-	    return (date - yearBegin) / toMillis(1.0);
-	}
-
 	function isDay(date, latitude, longitude) {
-	    var year = date.getUTCFullYear();
-	    var yearSpringEquinox = new Date(Date.UTC(year, 2, 20, 12, 0, 0, 0));
-	    var yearDurationMillis = toMillis(getYearLength(year));
-	    var sinAngle = Math.sin(toRadians(toSectorDegree((date - yearSpringEquinox) / yearDurationMillis)));
-	    var sinEclipticAngle = Math.sin(toRadians(23.4391));
-	    var deltaAngle = Math.asin(sinAngle * sinEclipticAngle);
-	    var cosEclipticAngle = Math.cos(deltaAngle);
-	    var sinEclipticAngle = Math.sin(deltaAngle);
-	    var latitudeRadians = toRadians(latitude);
-	    var cos = (Math.sin(latitudeRadians) * sinEclipticAngle - Math.sin(toRadians(-0.83))) / (cosEclipticAngle * Math.cos(latitudeRadians));
+	    return getCorrectedZenithInDegrees(date, latitude, longitude) < zenithDayThresholdDegrees;
+	}
 
-	    if (cos >= 1) {
-		return true;
-	    }
-	    if (cos <= -1) {
-		return false;
-	    }
+	function getTrueSolarMillisSinceEpoch(date) {
+	    var millisSinceEpoch = date.getTime();
+	    var phaseStartMillis = new Date('2019-01-01T00:00:00Z').getTime();
+	    var yearPhase = toRadians(toSectorDegree(mod(millisSinceEpoch - phaseStartMillis, tropicalYearMillis) / tropicalYearMillis));
+	    var equationOfTimeMillis = (-7.659 * Math.sin(yearPhase) + 9.863 * Math.sin(2 * yearPhase + 3.5932)) * millisInMinute;
+	    return millisSinceEpoch + equationOfTimeMillis;
+	}
 
-	    var halfDayPartMillisValue = toMillis((1.0 - (Math.acos(cos) / Math.PI)) / 2.0);
+	function getYearPhaseSinceNorthSummerSolstice(millisSinceEpoch) {
+	    var northSummerSolsticeMillis = new Date('2019-06-21T15:54:14Z').getTime();
+	    return toRadians(toSectorDegree(mod(millisSinceEpoch - northSummerSolsticeMillis, tropicalYearMillis) / tropicalYearMillis));
+	}
 
-	    var localNoonUTCTimeMillis = getTrueNoon(toMillis(0.5 - toRadians(longitude) / Math.PI / 2.0), getYearDay(date), year);
+	function getCorrectedZenithInDegrees(date, latitude, longitude) {
+	    var trueSolarMillisSinceEpoch = getTrueSolarMillisSinceEpoch(date);
+	    var startMillis = new Date('2019-12-26T12:00:00Z').getTime();
+	    var dayPhase = toSectorDegree(mod(trueSolarMillisSinceEpoch - startMillis, dayMillis) / dayMillis);
+	    var yearPhaseSinceNorthSummerSolstice = getYearPhaseSinceNorthSummerSolstice(trueSolarMillisSinceEpoch);
+	    return getZenithInDegrees(yearPhaseSinceNorthSummerSolstice, toRadians(axialTilt), toRadians(latitude), toRadians(longitude + dayPhase));
+	}
 
-	    var dayUTCTimeBegin = localNoonUTCTimeMillis - halfDayPartMillisValue;
-	    var dayUTCTimeEnd = localNoonUTCTimeMillis + halfDayPartMillisValue;
+	function getZenithInDegrees(yearPhaseSinceNorthSummerSolstice, axialTilt, latitude, angleOffset) {
+	    var sinYearPhase = Math.sin(yearPhaseSinceNorthSummerSolstice);
+	    var cosYearPhase = Math.cos(yearPhaseSinceNorthSummerSolstice);
+	    var cosYearPhaseMultipleCosAxialTilt = cosYearPhase * Math.cos(axialTilt);
+	    var cosZenith = Math.sin(latitude) * Math.sin(axialTilt) * cosYearPhase +
+		Math.cos(latitude) * Math.cos(angleOffset) *
+		    Math.sqrt(cosYearPhaseMultipleCosAxialTilt * cosYearPhaseMultipleCosAxialTilt + sinYearPhase * sinYearPhase);
+	    return toDegrees(Math.acos(cosZenith));
+	}
 
-	    var oneDayMillis = toMillis(1);
+	function mod(a, b) {
+	    var m = a % b;
 
-	    var time = date.getTime() % oneDayMillis;
-
-	    if (dayUTCTimeBegin <= 0) {
-		dayUTCTimeBegin = dayUTCTimeBegin + oneDayMillis;
-
-		if (time >= dayUTCTimeBegin) {
-		    return true;
-		}
-
-		dayUTCTimeBegin = 0;
-	    }
-
-	    if (dayUTCTimeEnd >= oneDayMillis) {
-		dayUTCTimeEnd = dayUTCTimeEnd - oneDayMillis;
-
-		if (time <= dayUTCTimeEnd) {
-		    return true;
-		}
-
-		dayUTCTimeEnd = oneDayMillis;
+	    if (m < 0) {
+		return b + m;
 	    }
 
-	    if (time < dayUTCTimeBegin) {
-		return false;
-	    }
-
-	    if (time <= dayUTCTimeEnd) {
-		return true;
-	    }
-
-	    return false;
+	    return m;
 	}
 
 	function pad_radix(num, count, radix) {
