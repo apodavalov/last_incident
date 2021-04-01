@@ -57,6 +57,19 @@
 	// * Include astronomical twilight: 108
 	const zenithDayThresholdDegrees = 90 + 50.0 / 60.0;
 
+	// Put your city coordinates here
+	const latitude = 0.0;
+	const longitude = 0.0;
+
+	// Put last incident data here
+	const lastIncidentDate = new Date('1970-01-01T00:00:00Z');
+	const bestPeriodBegin = new Date('1970-01-01T00:00:00Z');
+	const bestPeriodEnd = new Date('1970-01-01T00:00:00Z');
+
+	// Easter eggs
+	const foolDayOn = false;
+	const newYearOn = false;
+
 	const axialTilt = 23.4392811;
 	const tropicalYearMillis = 31556925190;
 	const dayMillis = 86400000;
@@ -226,12 +239,9 @@
 	}
 
 	function update() {
-	    var lastIncidentDay = new Date('2018-09-10T19:00:00Z');
-	    var bestPeriodBegin = new Date('2018-01-25T13:54:00Z');
-	    var bestPeriodEnd = new Date('2018-02-27T23:00:00Z');
-
-	    var latitude = 59.9586496; // Spb latitude
-	    var longitude = 30.4066436; // Spb longitude
+	    var lastIncidentDateValue = lastIncidentDate;
+	    var bestPeriodBeginValue = bestPeriodBegin;
+	    var bestPeriodEndValue = bestPeriodEnd;
 
 	    var night = new ColorTupleSet(
 		new ColorTuple(new RGB(0x3b, 0x17, 0x17), new RGB(0xc8, 0x2e, 0x2e)),
@@ -248,15 +258,15 @@
 	    );
 
 	    var now = new Date(Date.now());
-	    var foolDay = now.getDate() == 1 && now.getMonth() == 3;
-	    var newYearIsComing = now.getDate() > 15 && now.getMonth() == 11;
+	    var foolDay = foolDayOn && now.getDate() == 1 && now.getMonth() == 3;
+	    var newYearIsComing = newYearOn && now.getDate() > 15 && now.getMonth() == 11;
 	    if (newYearIsComing) {
-		lastIncidentDay = now;
-		bestPeriodBegin = new Date('0004-01-01T00:00:00')
-		bestPeriodEnd = new Date('0005-01-01T00:00:00');
+		lastIncidentDateValue = now;
+		bestPeriodBeginValue = new Date('0004-01-01T00:00:00')
+		bestPeriodEndValue = new Date('0005-01-01T00:00:00');
 	    }
-	    var bestPeriodDuration = getDurationSec(bestPeriodBegin, bestPeriodEnd);
-	    var totalDurationSec = newYearIsComing ? getDurationSec(now, new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0, 0)) : getDurationSec(lastIncidentDay, now);
+	    var bestPeriodDuration = getDurationSec(bestPeriodBeginValue, bestPeriodEndValue);
+	    var totalDurationSec = newYearIsComing ? getDurationSec(now, new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0, 0)) : getDurationSec(lastIncidentDateValue, now);
 	    var total = foolDay ? 100000 * 24 * 60 * 60 - totalDurationSec : totalDurationSec;
 	    var period = getPeriod(total);
 	    var periodStr = formatPeriod(period);
@@ -266,7 +276,7 @@
 	    daysElement.innerText = pad(period.days,5);
 	    var bestElement = document.getElementById("achieved");
 	    var durationElement = document.getElementById("duration");
-	    bestElement.innerText = total < bestPeriodDuration ? bestPeriodEnd : now;
+	    bestElement.innerText = total < bestPeriodDuration ? bestPeriodEndValue : now;
 	    durationElement.innerText = total < bestPeriodDuration ? formatPeriod(getPeriod(bestPeriodDuration)) : periodStr;
 	    var colorTupleSet = isDay(now, latitude, longitude) ^ foolDay ? day : night;
 	    var bodyElement = document.getElementById("body");
