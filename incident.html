@@ -163,8 +163,8 @@
 	    this.blue = blue;
 	}
 
-	function ColorTuple(bg_color, color) {
-	    this.bg_color = bg_color;
+	function ColorTuple(bgColor, color) {
+	    this.bgColor = bgColor;
 	    this.color = color;
 	}
 
@@ -184,51 +184,51 @@
 	    return '#' + pad2(color.red) + pad2(color.green) + pad2(color.blue);
 	}
 
-	function colorTupleToStyle(color_tuple) {
-	    return 'background-color: ' + colorToStyle(color_tuple.bg_color) + '; ' + 'color: ' + colorToStyle(color_tuple.color) + ';';
+	function colorTupleToStyle(colorTuple) {
+	    return 'background-color: ' + colorToStyle(colorTuple.bgColor) + '; ' + 'color: ' + colorToStyle(colorTuple.color) + ';';
 	}
 
 	function getPart(a, b, part) {
 	    return Math.round(a + (b-a)*part);
 	}
 
-	function getColorPart(a_color, b_color, part) {
+	function getColorPart(aColor, bColor, part) {
 	    return new RGB(
-		getPart(a_color.red, b_color.red, part),
-		getPart(a_color.green, b_color.green, part),
-		getPart(a_color.blue, b_color.blue, part),
+		getPart(aColor.red, bColor.red, part),
+		getPart(aColor.green, bColor.green, part),
+		getPart(aColor.blue, bColor.blue, part),
 	    );
 	}
 
-	function getColorTuplePart(a_color_tuple, b_color_tuple, part) {
+	function getColorTuplePart(aColorTuple, bColorTuple, part) {
 	    return new ColorTuple(
-		getColorPart(a_color_tuple.bg_color, b_color_tuple.bg_color, part),
-		getColorPart(a_color_tuple.color, b_color_tuple.color, part),
+		getColorPart(aColorTuple.bgColor, bColorTuple.bgColor, part),
+		getColorPart(aColorTuple.color, bColorTuple.color, part),
 	    );
 	}
 
-	function getColorTuple(color_tuple_set, total, best_total) {
+	function getColorTuple(colorTupleSet, total, bestTotal) {
 	    if (total <= 0) {
-		return color_tuple_set.low;
+		return colorTupleSet.low;
 	    }
 
-	    if (total >= best_total) {
-		return color_tuple_set.high;
+	    if (total >= bestTotal) {
+		return colorTupleSet.high;
 	    }
 
-	    var half_best_total = best_total / 2;
+	    var halfBestTotal = bestTotal / 2;
 
-	    var pair = total < half_best_total ? new ColorTuplePair(color_tuple_set.low, color_tuple_set.medium) : new ColorTuplePair(color_tuple_set.medium, color_tuple_set.high);
+	    var pair = total < halfBestTotal ? new ColorTuplePair(colorTupleSet.low, colorTupleSet.medium) : new ColorTuplePair(colorTupleSet.medium, colorTupleSet.high);
 
-	    var new_total = total < half_best_total ? total : total - half_best_total;
+	    var newTotal = total < halfBestTotal ? total : total - halfBestTotal;
 
-	    return getColorTuplePart(pair.left, pair.right, new_total / half_best_total);
+	    return getColorTuplePart(pair.left, pair.right, newTotal / halfBestTotal);
 	}
 
 	function update() {
-	    var last_incident_day = new Date('2018-09-10T19:00:00'); // MSK
-	    var best_period_begin = new Date('2018-01-25T13:54:00'); // MSK
-	    var best_period_end = new Date('2018-02-27T23:00:00'); // MSK
+	    var lastIncidentDay = new Date('2018-09-10T19:00:00Z');
+	    var bestPeriodBegin = new Date('2018-01-25T13:54:00Z');
+	    var bestPeriodEnd = new Date('2018-02-27T23:00:00Z');
 
 	    var latitude = 59.9586496; // Spb latitude
 	    var longitude = 30.4066436; // Spb longitude
@@ -251,12 +251,12 @@
 	    var foolDay = now.getDate() == 1 && now.getMonth() == 3;
 	    var newYearIsComing = now.getDate() > 15 && now.getMonth() == 11;
 	    if (newYearIsComing) {
-		last_incident_day = now;
-		best_period_begin = new Date('0004-01-01T00:00:00')
-		best_period_end = new Date('0005-01-01T00:00:00');
+		lastIncidentDay = now;
+		bestPeriodBegin = new Date('0004-01-01T00:00:00')
+		bestPeriodEnd = new Date('0005-01-01T00:00:00');
 	    }
-	    var best_period_duration = getDurationSec(best_period_begin, best_period_end);
-	    var totalDurationSec = newYearIsComing ? getDurationSec(now, new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0, 0)) : getDurationSec(last_incident_day, now);
+	    var bestPeriodDuration = getDurationSec(bestPeriodBegin, bestPeriodEnd);
+	    var totalDurationSec = newYearIsComing ? getDurationSec(now, new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0, 0)) : getDurationSec(lastIncidentDay, now);
 	    var total = foolDay ? 100000 * 24 * 60 * 60 - totalDurationSec : totalDurationSec;
 	    var period = getPeriod(total);
 	    var periodStr = formatPeriod(period);
@@ -266,17 +266,17 @@
 	    daysElement.innerText = pad(period.days,5);
 	    var bestElement = document.getElementById("achieved");
 	    var durationElement = document.getElementById("duration");
-	    bestElement.innerText = total < best_period_duration ? best_period_end : now;
-	    durationElement.innerText = total < best_period_duration ? formatPeriod(getPeriod(best_period_duration)) : periodStr;
+	    bestElement.innerText = total < bestPeriodDuration ? bestPeriodEnd : now;
+	    durationElement.innerText = total < bestPeriodDuration ? formatPeriod(getPeriod(bestPeriodDuration)) : periodStr;
 	    var colorTupleSet = isDay(now, latitude, longitude) ^ foolDay ? day : night;
 	    var bodyElement = document.getElementById("body");
 	    var colorTuple;
 	    if (newYearIsComing) {
 		var seconds = now.getSeconds() % 10;
-		var pseudo_total = seconds < 5 ? seconds * 1000 + now.getMilliseconds() : 5000 - (seconds - 5) * 1000 - now.getMilliseconds();
-		colorTuple = getColorTuple(colorTupleSet, pseudo_total, 5000);
+		var pseudoTotal = seconds < 5 ? seconds * 1000 + now.getMilliseconds() : 5000 - (seconds - 5) * 1000 - now.getMilliseconds();
+		colorTuple = getColorTuple(colorTupleSet, pseudoTotal, 5000);
 	    } else {
-		colorTuple = getColorTuple(colorTupleSet, total, best_period_duration);
+		colorTuple = getColorTuple(colorTupleSet, total, bestPeriodDuration);
 	    }
 	    bodyElement.setAttribute("style", colorTupleToStyle(colorTuple));
 	    var daysNotice = document.getElementById("days-notice");
