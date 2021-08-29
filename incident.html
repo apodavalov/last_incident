@@ -92,7 +92,6 @@
 	const minDurationSec = 0;
 	const maxDurationSec = 100000 * 24 * 60 * 60 - 1;
 	const newYearGarlandPeriodMillis = 10000;
-	const newYearGarlandHalfPeriodMillis = newYearGarlandPeriodMillis / 2;
 
 	function toRadians(degrees) {
 	    return degrees * Math.PI / 180.0;
@@ -271,6 +270,10 @@
 	    return getColorTuplePart(pair.left, pair.right, newTotal / halfBestTotal);
 	}
 
+	function getPhaseValue(period, arg) {
+	    return (1 + Math.sin(2 * Math.PI * arg / period)) / 2;
+	}
+
 	function update() {
 	    var now = new Date(Date.now());
 	    var foolDay = foolDayOn && now.getDate() == 1 && now.getMonth() == 3;
@@ -291,8 +294,8 @@
 		totalDurationSec = getCorrectedDurationSec(now, new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0, 0), foolDay);
 		bestPeriodDurationSec = getDurationSec(new Date('0004-01-01T00:00:00'), bestPeriodEndValue);
 		var phaseMillis = now.getTime() % newYearGarlandPeriodMillis;
-		total = phaseMillis < newYearGarlandHalfPeriodMillis ? phaseMillis : newYearGarlandPeriodMillis - phaseMillis;
-		bestTotal = newYearGarlandHalfPeriodMillis;
+		total = getPhaseValue(newYearGarlandPeriodMillis, now.getTime());
+		bestTotal = 1.0;
 		daysNotice.innerText = "days till the next year";
 		timeNotice.innerText = "till the next year";
 	    } else {
