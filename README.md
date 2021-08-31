@@ -34,4 +34,11 @@ const newYearOn = false;
 ```
 3. Amend the configuration and save the file.
 4. Navigate your browser to `incident.html`'s URL.
+5. Enjoy!
   
+## Screenshots
+
+![Example 1](screenshots/screen_1.png)
+![Example 2](screenshots/screen_2.png)
+![Example 3](screenshots/screen_3.png)
+![Example 4](screenshots/screen_4.png)
