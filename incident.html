@@ -6,329 +6,334 @@
          Time since last incident
       </title>
       <style>
-	.notice {
-	    text-align: center;
-	    vertical-align: middle;
-	    margin-left: auto;
-	    margin-right: auto;
-	    margin-bottom: 50px;
-	    margin-top: auto;
-	    font-size: 50pt;
-	}
+    .notice {
+        text-align: center;
+        vertical-align: middle;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: 50px;
+        margin-top: auto;
+        font-size: 50pt;
+    }
 
-	.time {
-	    text-align: center;
-	    vertical-align: middle;
-	    margin: auto;
-	    font-size: 50pt;
-	}
+    .time {
+        text-align: center;
+        vertical-align: middle;
+        margin: auto;
+        font-size: 50pt;
+    }
 
-	.best-notice {
-	    text-align: center;
-	    vertical-align: middle;
-	    margin-left: auto;
-	    margin-right: auto;
-	    margin-bottom: auto;
-	    margin-top: 100px;
-	    font-size: 20pt;
-	}
+    .best-notice {
+        text-align: center;
+        vertical-align: middle;
+        margin-left: auto;
+        margin-right: auto;
+        margin-bottom: auto;
+        margin-top: 100px;
+        font-size: 20pt;
+    }
 
-	.days {
-	    text-align: center;
-	    vertical-align: middle;
-	    margin: auto;
-	    font-size: 350pt;
-	    height: 500px;
-	}
+    .days {
+        text-align: center;
+        vertical-align: middle;
+        margin: auto;
+        font-size: 350pt;
+        height: 500px;
+    }
       </style>
    </head>
    <body id="body">
-	<div id="days" class="days">00000</div>
-	<div class="notice" id="days-notice">days since last incident</div>
-	<div id="time" class="time">0.00:00:00</div>
-	<div class="notice" id="time-notice">since last incident</div>
-	<div class="best-notice">the best duration <span id="duration">&lt;none&gt;</span> achieved at <span id="achieved">&lt;never&gt;</span></div>
+    <div id="days" class="days">00000</div>
+    <div class="notice" id="days-notice">days since last incident</div>
+    <div id="time" class="time">0.00:00:00</div>
+    <div class="notice" id="time-notice">since last incident</div>
+    <div class="best-notice">the best duration <span id="duration">&lt;none&gt;</span> achieved at <span id="achieved">&lt;never&gt;</span></div>
    </body>
    <script>
-	// Zenith day threshold values:
-	// * Include day time only: 90 + 50.0 / 60.0
-	// * Include civil twilight: 96
-	// * Include nautical twilight: 102
-	// * Include astronomical twilight: 108
-	const zenithDayThresholdDegrees = 90 + 50.0 / 60.0;
+    // Zenith day threshold values:
+    // * Include day time only: 90 + 50.0 / 60.0
+    // * Include civil twilight: 96
+    // * Include nautical twilight: 102
+    // * Include astronomical twilight: 108
+    const zenithDayThresholdDegrees = 90 + 50.0 / 60.0;
 
-	// Put your city coordinates here
-	const latitude = 0.0;
-	const longitude = 0.0;
+    // Put your city coordinates here
+    const latitude = 0.0;
+    const longitude = 0.0;
 
-	// Put last incident data here
-	const lastIncidentDate = new Date('1970-01-01T00:00:00Z');
-	const bestPeriodBegin = new Date('1970-01-01T00:00:00Z');
-	const bestPeriodEnd = new Date('1970-01-01T00:00:00Z');
+    // Put last incident data here
+    const lastIncidentDate = new Date('1970-01-01T00:00:00Z');
+    const bestPeriodBegin = new Date('1970-01-01T00:00:00Z');
+    const bestPeriodEnd = new Date('1970-01-01T00:00:00Z');
 
-	// Easter eggs
-	const foolDayOn = false;
-	const newYearOn = false;
+    // Easter eggs
+    const foolDayOn = false;
+    const newYearOn = false;
 
-	// Colors
-	const night = new ColorTupleSet(
-	    new ColorTuple(toRGB(0x3b1717), toRGB(0xc82e2e)),
-	    new ColorTuple(toRGB(0x3b3b17), toRGB(0xc8c82e)),
-	    new ColorTuple(toRGB(0x173b17), toRGB(0x2ec82e)),
-	    new ColorTuple(toRGB(0x17173b), toRGB(0x2e2ec8))
-	);
+    // Colors
+    const night = new ColorTupleSet(
+        new ColorTuple(toRGB(0x3b1717), toRGB(0xc82e2e)),
+        new ColorTuple(toRGB(0x3b3b17), toRGB(0xc8c82e)),
+        new ColorTuple(toRGB(0x173b17), toRGB(0x2ec82e)),
+        new ColorTuple(toRGB(0x17173b), toRGB(0x2e2ec8))
+    );
 
-	const day = new ColorTupleSet(
-	    new ColorTuple(toRGB(0xffe0e0), toRGB(0xcc0000)),
-	    new ColorTuple(toRGB(0xefefe0), toRGB(0xcc9900)),
-	    new ColorTuple(toRGB(0xe0ffe0), toRGB(0x336600)),
-	    new ColorTuple(toRGB(0xe0e0ff), toRGB(0x000066))
-	);
+    const day = new ColorTupleSet(
+        new ColorTuple(toRGB(0xffe0e0), toRGB(0xcc0000)),
+        new ColorTuple(toRGB(0xefefe0), toRGB(0xcc9900)),
+        new ColorTuple(toRGB(0xe0ffe0), toRGB(0x336600)),
+        new ColorTuple(toRGB(0xe0e0ff), toRGB(0x000066))
+    );
 
-	const axialTilt = 23.4392811;
-	const tropicalYearMillis = 31556925190;
-	const dayMillis = 86400000;
-	const millisInMinute = 60000;
-	const minDurationSec = 0;
-	const maxDurationSec = 100000 * 24 * 60 * 60 - 1;
-	const newYearGarlandPeriodMillis = 10000;
+    const axialTilt = 23.4392811;
+    const meanYearSeconds = 31556952;
+    const daySeconds = 86400;
+    const minDurationSec = 0;
+    const maxDurationSec = 100000 * 24 * 60 * 60 - 1;
+    const newYearGarlandPeriodMillis = 10000;
+    const secondsBetweenEpochAndNewGregorianCycle = 978307200;
+    const secondsBetweenYearBeginAndMarchEquinox = 6787860;
+    const secondsBetweenYearBeginAndJuneSolstice = 14677098;
+    const gregorianCycleSeconds = 400 * meanYearSeconds;
 
-	function toRadians(degrees) {
-	    return degrees * Math.PI / 180.0;
-	}
+    function toRadians(degrees) {
+        return degrees * Math.PI / 180.0;
+    }
 
-	function toDegrees(radians) {
-	    return radians * 180.0 / Math.PI;
-	}
+    function toDegrees(radians) {
+        return radians * 180.0 / Math.PI;
+    }
 
-	function toSectorDegree(part) {
-	    return 360.0 * part;
-	}
+    function toSectorDegree(part) {
+        return 360.0 * part;
+    }
 
-	function isDay(date, latitude, longitude) {
-	    return getCorrectedZenithInDegrees(date, latitude, longitude) < zenithDayThresholdDegrees;
-	}
+    function isDay(date, latitude, longitude) {
+        return getCorrectedZenithInDegrees(date, latitude, longitude) < zenithDayThresholdDegrees;
+    }
 
-	function getTrueSolarMillisSinceEpoch(date) {
-	    var millisSinceEpoch = date.getTime();
-	    var phaseStartMillis = new Date('2019-01-01T00:00:00Z').getTime();
-	    var yearPhase = toRadians(toSectorDegree(mod(millisSinceEpoch - phaseStartMillis, tropicalYearMillis) / tropicalYearMillis));
-	    var equationOfTimeMillis = (-7.659 * Math.sin(yearPhase) + 9.863 * Math.sin(2 * yearPhase + 3.5932)) * millisInMinute;
-	    return millisSinceEpoch + equationOfTimeMillis;
-	}
+    function getMeanSecondsInGregorianCycle(date) {
+        var nowSeconds = Math.floor(date.getTime() / 1000) - secondsBetweenEpochAndNewGregorianCycle;
+        var trueYearPhaseEoT = toRadians(toSectorDegree((mod(nowSeconds, meanYearSeconds) -
+            secondsBetweenYearBeginAndMarchEquinox) / meanYearSeconds));
+        return mod(nowSeconds + Math.floor(592.2 * Math.sin(2 * trueYearPhaseEoT) -
+            460.2 * Math.sin(trueYearPhaseEoT + toRadians(78.7))), gregorianCycleSeconds);
+    }
 
-	function getYearPhaseSinceJuneSolstice(millisSinceEpoch) {
-	    var juneSolsticeMillis = new Date('2019-06-21T15:54:14Z').getTime();
-	    return toRadians(toSectorDegree(mod(millisSinceEpoch - juneSolsticeMillis, tropicalYearMillis) / tropicalYearMillis));
-	}
+    function getCorrectedZenithInDegrees(date, latitude, longitude) {
+        var meanSecondsInGregorianCycle = getMeanSecondsInGregorianCycle(date);
+        var meanDayPhaseInDegrees = toSectorDegree(mod(meanSecondsInGregorianCycle, daySeconds) / daySeconds);
+        var yearPhaseSinceJuneSolstice = toSectorDegree(mod(meanSecondsInGregorianCycle -
+            secondsBetweenYearBeginAndJuneSolstice, meanYearSeconds) / meanYearSeconds);
+        return getZenithInDegrees(toRadians(yearPhaseSinceJuneSolstice), toRadians(axialTilt),
+            toRadians(latitude), toRadians(longitude + meanDayPhaseInDegrees));
+    }
 
-	function getCorrectedZenithInDegrees(date, latitude, longitude) {
-	    var trueSolarMillisSinceEpoch = getTrueSolarMillisSinceEpoch(date);
-	    var startMillis = new Date('2019-12-26T12:00:00Z').getTime();
-	    var dayPhase = toSectorDegree(mod(trueSolarMillisSinceEpoch - startMillis, dayMillis) / dayMillis);
-	    var yearPhaseSinceJuneSolstice = getYearPhaseSinceJuneSolstice(trueSolarMillisSinceEpoch);
-	    return getZenithInDegrees(yearPhaseSinceJuneSolstice, toRadians(axialTilt), toRadians(latitude), toRadians(longitude + dayPhase));
-	}
+    function getZenithInDegrees(yearPhaseSinceJuneSolstice, axialTilt, latitude, angleOffset) {
+        var sinYearPhase = Math.sin(yearPhaseSinceJuneSolstice);
+        var cosYearPhase = Math.cos(yearPhaseSinceJuneSolstice);
+        var cosYearPhaseMultipleCosAxialTilt = cosYearPhase * Math.cos(axialTilt);
+        var cosZenith = Math.sin(latitude) * Math.sin(axialTilt) * cosYearPhase -
+        Math.cos(latitude) * Math.cos(angleOffset) *
+            Math.sqrt(cosYearPhaseMultipleCosAxialTilt * cosYearPhaseMultipleCosAxialTilt +
+            sinYearPhase * sinYearPhase);
+        return toDegrees(Math.acos(cosZenith));
+    }
 
-	function getZenithInDegrees(yearPhaseSinceJuneSolstice, axialTilt, latitude, angleOffset) {
-	    var sinYearPhase = Math.sin(yearPhaseSinceJuneSolstice);
-	    var cosYearPhase = Math.cos(yearPhaseSinceJuneSolstice);
-	    var cosYearPhaseMultipleCosAxialTilt = cosYearPhase * Math.cos(axialTilt);
-	    var cosZenith = Math.sin(latitude) * Math.sin(axialTilt) * cosYearPhase +
-		Math.cos(latitude) * Math.cos(angleOffset) *
-		    Math.sqrt(cosYearPhaseMultipleCosAxialTilt * cosYearPhaseMultipleCosAxialTilt +
-			sinYearPhase * sinYearPhase);
-	    return toDegrees(Math.acos(cosZenith));
-	}
+    function mod(a, b) {
+        var m = a % b;
 
-	function mod(a, b) {
-	    var m = a % b;
+        if (m < 0) {
+            return b + m;
+        }
 
-	    if (m < 0) {
-		return b + m;
-	    }
+        return m;
+    }
 
-	    return m;
-	}
+    function padRadix(num, count, radix) {
+        var str = num.toString(radix);
 
-	function padRadix(num, count, radix) {
-	    var str = num.toString(radix);
+        while (str.length < count) {
+            str = "0" + str;
+        }
 
-	    while (str.length < count) {
-		str = "0" + str;
-	    }
+        return str;
+    }
 
-	    return str;
-	}
+    function pad(num, count) {
+        return padRadix(num, count, 10);
+    }
 
-	function pad(num, count) {
-	    return padRadix(num, count, 10);
-	}
+    function pad2(num) {
+        return padRadix(num, 2, 16);
+    }
 
-	function pad2(num) {
-	    return padRadix(num, 2, 16);
-	}
+    function getDurationSec(begin, end) {
+        var durationSec = Math.floor((end - begin) / 1000);
+        return Math.max(Math.min(durationSec, maxDurationSec), minDurationSec);
+    }
 
-	function getDurationSec(begin, end) {
-	    var durationSec = Math.floor((end - begin) / 1000);
-	    return Math.max(Math.min(durationSec, maxDurationSec), minDurationSec);
-	}
+    function getCorrectedDurationSec(begin, end, isFoolDay) {
+        var durationSec = getDurationSec(begin, end);
+        return isFoolDay ? maxDurationSec - durationSec : durationSec;
+    }
 
-	function getCorrectedDurationSec(begin, end, isFoolDay) {
-	    var durationSec = getDurationSec(begin, end);
-	    return isFoolDay ? maxDurationSec - durationSec : durationSec;
-	}
+    function getPeriod(durationSec) {
+        var sec = durationSec % 60;
+        durationSec = Math.floor(durationSec / 60);
+        var min = durationSec % 60;
+        durationSec = Math.floor(durationSec / 60);
+        var hour = durationSec % 24;
+        durationSec = Math.floor(durationSec / 24);
+        var days = durationSec;
 
-	function getPeriod(durationSec) {
-	    var sec = durationSec % 60;
-	    durationSec = Math.floor(durationSec / 60);
-	    var min = durationSec % 60;
-	    durationSec = Math.floor(durationSec / 60);
-	    var hour = durationSec % 24;
-	    durationSec = Math.floor(durationSec / 24);
-	    var days = durationSec;
+        return { sec: sec, min: min, hour: hour, days: days };
+    }
 
-	    return { sec: sec, min: min, hour: hour, days: days };
-	}
+    function formatPeriod(period) {
+        return period.days + "." + pad(period.hour, 2) + ":" +
+            pad(period.min, 2) + ":" + pad(period.sec, 2);
+    }
 
-	function formatPeriod(period) {
-	    return period.days + "." + pad(period.hour, 2) + ":" + pad(period.min, 2) + ":" +
-		pad(period.sec, 2);
-	}
+    function RGB(red, green, blue) {
+        this.red = red;
+        this.green = green;
+        this.blue = blue;
+    }
 
-	function RGB(red, green, blue) {
-	    this.red = red;
-	    this.green = green;
-	    this.blue = blue;
-	}
+    function ColorTuple(bgColor, color) {
+        this.bgColor = bgColor;
+        this.color = color;
+    }
 
-	function ColorTuple(bgColor, color) {
-	    this.bgColor = bgColor;
-	    this.color = color;
-	}
+    function ColorTupleSet(low, medium, high, unnamed) {
+        this.low = low;
+        this.medium = medium;
+        this.high = high;
+        this.unnamed = unnamed;
+    }
 
-	function ColorTupleSet(low, medium, high, unnamed) {
-	    this.low = low;
-	    this.medium = medium;
-	    this.high = high;
-	    this.unnamed = unnamed;
-	}
+    function ColorTuplePair(left, right) {
+        this.left = left;
+        this.right = right;
+    }
 
-	function ColorTuplePair(left, right) {
-	    this.left = left;
-	    this.right = right;
-	}
+    function colorToStyle(color) {
+        return '#' + pad2(color.red) + pad2(color.green) + pad2(color.blue);
+    }
 
-	function colorToStyle(color) {
-	    return '#' + pad2(color.red) + pad2(color.green) + pad2(color.blue);
-	}
+    function colorTupleToStyle(colorTuple) {
+        return 'background-color: ' + colorToStyle(colorTuple.bgColor) +
+            '; ' + 'color: ' + colorToStyle(colorTuple.color) + ';';
+    }
 
-	function colorTupleToStyle(colorTuple) {
-	    return 'background-color: ' + colorToStyle(colorTuple.bgColor) + '; ' + 'color: ' +
-		colorToStyle(colorTuple.color) + ';';
-	}
+    function getPart(a, b, part) {
+        return Math.round(a + (b - a) * part);
+    }
 
-	function getPart(a, b, part) {
-	    return Math.round(a + (b - a) * part);
-	}
+    function getColorPart(aColor, bColor, part) {
+        return new RGB(
+            getPart(aColor.red, bColor.red, part),
+            getPart(aColor.green, bColor.green, part),
+            getPart(aColor.blue, bColor.blue, part),
+        );
+    }
 
-	function getColorPart(aColor, bColor, part) {
-	    return new RGB(
-		getPart(aColor.red, bColor.red, part),
-		getPart(aColor.green, bColor.green, part),
-		getPart(aColor.blue, bColor.blue, part),
-	    );
-	}
+    function getColorTuplePart(aColorTuple, bColorTuple, part) {
+        return new ColorTuple(
+            getColorPart(aColorTuple.bgColor, bColorTuple.bgColor, part),
+            getColorPart(aColorTuple.color, bColorTuple.color, part),
+        );
+    }
 
-	function getColorTuplePart(aColorTuple, bColorTuple, part) {
-	    return new ColorTuple(
-		getColorPart(aColorTuple.bgColor, bColorTuple.bgColor, part),
-		getColorPart(aColorTuple.color, bColorTuple.color, part),
-	    );
-	}
+    function toRGB(hex) {
+        var r = (hex & 0xff0000) >> 16;
+        var g = (hex & 0x00ff00) >> 8;
+        var b = (hex & 0x0000ff);
 
-	function toRGB(hex) {
-	    var r = (hex & 0xff0000) >> 16;
-	    var g = (hex & 0x00ff00) >> 8;
-	    var b = (hex & 0x0000ff);
+        return new RGB(r, g, b);
+    }
 
-	    return new RGB(r, g, b);
-	}
+    function getColorTuple(colorTupleSet, total, bestTotal) {
+        if (total <= 0) {
+            return colorTupleSet.low;
+        }
 
-	function getColorTuple(colorTupleSet, total, bestTotal) {
-	    if (total <= 0) {
-		return colorTupleSet.low;
-	    }
+        if (total >= bestTotal) {
+            return colorTupleSet.high;
+        }
 
-	    if (total >= bestTotal) {
-		return colorTupleSet.high;
-	    }
+        var halfBestTotal = bestTotal / 2;
+        var pair = total < halfBestTotal ?
+            new ColorTuplePair(colorTupleSet.low, colorTupleSet.medium) :
+            new ColorTuplePair(colorTupleSet.medium, colorTupleSet.high);
+        var newTotal = total < halfBestTotal ? total : total - halfBestTotal;
+        return getColorTuplePart(pair.left, pair.right, newTotal / halfBestTotal);
+    }
 
-	    var halfBestTotal = bestTotal / 2;
-	    var pair = total < halfBestTotal ? new ColorTuplePair(colorTupleSet.low, colorTupleSet.medium) : new ColorTuplePair(colorTupleSet.medium, colorTupleSet.high);
-	    var newTotal = total < halfBestTotal ? total : total - halfBestTotal;
-	    return getColorTuplePart(pair.left, pair.right, newTotal / halfBestTotal);
-	}
+    function getPhaseValue(period, arg) {
+        return (1 + Math.sin(2 * Math.PI * arg / period)) / 2;
+    }
 
-	function getPhaseValue(period, arg) {
-	    return (1 + Math.sin(2 * Math.PI * arg / period)) / 2;
-	}
+    function update() {
+        var now = new Date(Date.now());
+        var foolDay = foolDayOn && now.getDate() == 1 && now.getMonth() == 3;
+        var newYearIsComing = newYearOn && now.getDate() > 15 && now.getMonth() == 11;
 
-	function update() {
-	    var now = new Date(Date.now());
-	    var foolDay = foolDayOn && now.getDate() == 1 && now.getMonth() == 3;
-	    var newYearIsComing = newYearOn && now.getDate() > 15 && now.getMonth() == 11;
+        var lastIncidentDateValue;
+        var bestPeriodEndValue;
+        var totalDurationSec;
+        var bestPeriodDurationSec;
+        var total;
+        var bestTotal;
+        var daysNotice = document.getElementById("days-notice");
+        var timeNotice = document.getElementById("time-notice");
 
-	    var lastIncidentDateValue;
-	    var bestPeriodEndValue;
-	    var totalDurationSec;
-	    var bestPeriodDurationSec;
-	    var total;
-	    var bestTotal;
-	    var daysNotice = document.getElementById("days-notice");
-	    var timeNotice = document.getElementById("time-notice");
+        if (newYearIsComing) {
+            lastIncidentDateValue = now;
+            bestPeriodEndValue = new Date('0005-01-01T00:00:00');
+            totalDurationSec = getCorrectedDurationSec(now,
+                new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0, 0), foolDay);
+            bestPeriodDurationSec = getDurationSec(new Date('0004-01-01T00:00:00'),
+                bestPeriodEndValue);
+            var phaseMillis = now.getTime() % newYearGarlandPeriodMillis;
+            total = getPhaseValue(newYearGarlandPeriodMillis, now.getTime());
+            bestTotal = 1.0;
+            daysNotice.innerText = "days till the next year";
+            timeNotice.innerText = "till the next year";
+        } else {
+            lastIncidentDateValue = lastIncidentDate;
+            bestPeriodEndValue = bestPeriodEnd;
+            total = totalDurationSec = getCorrectedDurationSec(lastIncidentDateValue, now, foolDay);
+            bestTotal = bestPeriodDurationSec = getDurationSec(bestPeriodBegin, bestPeriodEndValue);
+            daysNotice.innerText = "days since last incident";
+            timeNotice.innerText = "since last incident";
+        }
 
-	    if (newYearIsComing) {
-		lastIncidentDateValue = now;
-		bestPeriodEndValue = new Date('0005-01-01T00:00:00');
-		totalDurationSec = getCorrectedDurationSec(now, new Date(now.getFullYear() + 1, 0, 1, 0, 0, 0, 0), foolDay);
-		bestPeriodDurationSec = getDurationSec(new Date('0004-01-01T00:00:00'), bestPeriodEndValue);
-		var phaseMillis = now.getTime() % newYearGarlandPeriodMillis;
-		total = getPhaseValue(newYearGarlandPeriodMillis, now.getTime());
-		bestTotal = 1.0;
-		daysNotice.innerText = "days till the next year";
-		timeNotice.innerText = "till the next year";
-	    } else {
-		lastIncidentDateValue = lastIncidentDate;
-		bestPeriodEndValue = bestPeriodEnd;
-		total = totalDurationSec = getCorrectedDurationSec(lastIncidentDateValue, now, foolDay);
-		bestTotal = bestPeriodDurationSec = getDurationSec(bestPeriodBegin, bestPeriodEndValue);
-		daysNotice.innerText = "days since last incident";
-		timeNotice.innerText = "since last incident";
-	    }
+        var period = getPeriod(totalDurationSec);
+        var periodStr = formatPeriod(period);
 
-	    var period = getPeriod(totalDurationSec);
-	    var periodStr = formatPeriod(period);
+        var timeElement = document.getElementById("time");
+        timeElement.innerText = periodStr;
 
-	    var timeElement = document.getElementById("time");
-	    timeElement.innerText = periodStr;
+        var daysElement = document.getElementById("days");
+        daysElement.innerText = pad(period.days, 5);
 
-	    var daysElement = document.getElementById("days");
-	    daysElement.innerText = pad(period.days, 5);
+        var bestElement = document.getElementById("achieved");
+        bestElement.innerText = totalDurationSec < bestPeriodDurationSec ?
+            bestPeriodEndValue : now;
 
-	    var bestElement = document.getElementById("achieved");
-	    bestElement.innerText = totalDurationSec < bestPeriodDurationSec ? bestPeriodEndValue : now;
+        var durationElement = document.getElementById("duration");
+        durationElement.innerText = totalDurationSec < bestPeriodDurationSec ?
+            formatPeriod(getPeriod(bestPeriodDurationSec)) : periodStr;
 
-	    var durationElement = document.getElementById("duration");
-	    durationElement.innerText = totalDurationSec < bestPeriodDurationSec ? formatPeriod(getPeriod(bestPeriodDurationSec)) : periodStr;
+        var colorTupleSet = isDay(now, latitude, longitude) != foolDay ? day : night;
+        var colorTuple = getColorTuple(colorTupleSet, total, bestTotal);
 
-	    var colorTupleSet = isDay(now, latitude, longitude) != foolDay ? day : night;
-	    var colorTuple = getColorTuple(colorTupleSet, total, bestTotal);
-
-	    var bodyElement = document.getElementById("body");
-	    bodyElement.setAttribute("style", colorTupleToStyle(colorTuple));
-	}
-	update();
-	setInterval(update, 100);
+        var bodyElement = document.getElementById("body");
+        bodyElement.setAttribute("style", colorTupleToStyle(colorTuple));
+    }
+    update();
+    setInterval(update, 100);
    </script>
 </html>
